@@ -1,0 +1,19 @@
+{
+  "name": "rlibmml-node",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "example:mmltosmf": "node -e \"process.stdout.write('cdefgab<c')\" | tsx src/index.ts mmltosmf -o ./mmltosmf.mid",
+    "example:smftomml": "tsx src/index.ts smftomml -i ./mmltosmf.mid -o ./smftomml.mml"
+  },
+  "dependencies": {
+    "@thinkridge/rlib-mml": "*",
+    "commander": "^11.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "tsx": "^4.7.0",
+    "@types/node": "^20.11.0"
+  }
+}
