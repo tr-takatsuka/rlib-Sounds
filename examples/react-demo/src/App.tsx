@@ -5,13 +5,35 @@ import { getRlibMml } from "@thinkridge/rlib-mml";
 import { RlibSoundfont } from "@thinkridge/rlib-soundfont";
 import { AudioPlayer } from "./models/AudioPlayer";
 
-const rlibMml = await getRlibMml();
+
+const useRlibMml = () => {
+  const [rlibMml, setRlibMml] = React.useState<Awaited<ReturnType<typeof getRlibMml>>>();
+  const [error, setError] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    const abortController = new AbortController();
+    (async () => {
+      try {
+        const inst = await getRlibMml();
+        if (abortController.signal.aborted) return;
+        setRlibMml(inst);
+      } catch (e: any) {
+        if (abortController.signal.aborted) return;
+        setError(e.message);
+      }
+    })();
+    return () => abortController.abort();
+  }, []);
+  return { rlibMml, error };
+};
+
 
 export const App = () => {
   const [mml, setMml] = React.useState("cdefgab<c");
   const [soundfont, setSoundfont] = React.useState<{ instance: RlibSoundfont; filename: string }>();
   const refAudioPlayer = React.useRef<AudioPlayer>(null);
   const [playState, setPlayState] = React.useState("");
+
+  const { rlibMml, error: rlibMmlInitializeError } = useRlibMml();
 
   const donwload = (p: { blob: Blob; filename: string }) => {
     const url = URL.createObjectURL(p.blob);
@@ -120,7 +142,7 @@ export const App = () => {
           disabled={mml.trim().length <= 0 || !soundfont}
           onClick={async () => {
             try {
-              if (!soundfont) return;
+              if (!rlibMml || !soundfont) return;
               const smf = rlibMml.mmlToSmf(mml);
               const wav = await soundfont.instance.smfToWav(smf);
               const blob = new Blob([wav as BlobPart], { type: "audio/wav" });
@@ -179,7 +201,7 @@ export const App = () => {
             input.accept = "audio/midi";
             input.onchange = async (ev: Event) => {
               try {
-                if (!input.files) return;
+                if (!rlibMml || !input.files) return;
                 const file = input.files[0];
                 const uint8Array = new Uint8Array(await file.arrayBuffer());
                 const mml = rlibMml.smfToMml(uint8Array);
@@ -201,6 +223,7 @@ export const App = () => {
           disabled={mml.trim().length <= 0}
           onClick={async () => {
             try {
+              if (!rlibMml) return;
               const smf = rlibMml.mmlToSmf(mml);
               const blob = new Blob([smf as BlobPart], { type: "audio/midi" });
               donwload({ blob, filename: "mmlToSmf.mid" });
@@ -217,7 +240,7 @@ export const App = () => {
           disabled={mml.trim().length <= 0 || !soundfont}
           onClick={async () => {
             try {
-              if (!soundfont) return;
+              if (!rlibMml || !soundfont) return;
               const smf = rlibMml.mmlToSmf(mml);
               const wav = await soundfont.instance.smfToWav(smf);
               const blob = new Blob([wav as BlobPart], { type: "audio/wav" });
